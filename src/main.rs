@@ -1,17 +1,26 @@
 use std::{
+    fmt::format,
     fs,
     io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream}, fmt::format,
+    net::{TcpListener, TcpStream},
+    thread
 };
+
+use rust_webserver::ThreadPool;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
 
-        handle_connection(stream);
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
+
+    println!("Shutting down.");
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -30,7 +39,6 @@ fn handle_connection(mut stream: TcpStream) {
     let length = contents.len();
 
     let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-    
+
     stream.write_all(response.as_bytes()).unwrap();
 }
-
